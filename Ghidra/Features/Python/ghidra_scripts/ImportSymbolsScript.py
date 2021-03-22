@@ -14,7 +14,11 @@ for line in file(f.absolutePath):  # note, cannot use open(), since that is in G
     pieces = line.split()
 
     name = pieces[0]
-    address = toAddr(long(pieces[1], 16))
+    address = toAddr(pieces[1])
+    
+    if address == None:
+        print("Unknown address {}".format(pieces[1]));
+        continue
 
     try:
         function_or_label = pieces[2]
