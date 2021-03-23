@@ -70,14 +70,12 @@ define token instr8 (8)
 	byte0		= (0,7)
 	byte0s		= (0,7) signed
 	
-	bits5_3		= (5,7)
-	
 	bit0		= (0,0)
 	bit6		= (6,6)
 	bit7		= (7,7)
 	
 	Rn1			= (1,6)
-	off1_6s		= (1,6) signed
+	off0_7s		= (0,6) signed
 ;
 
 define token instr16 (16)
@@ -86,6 +84,7 @@ define token instr16 (16)
 	offH		= (0,2)
 	offL		= (8,15)
 	rel3_5		= (3,7)
+	bits13_3	= (13,15)
 ;
 
 define token intr24 (24)
@@ -114,15 +113,15 @@ zero_fmt: byte0 	is byte0 { export *[ram]:2 byte0; }												#0 Direct Addres
 s_fmt: address	 	is byte0 [ address = 0xfe00 | byte0; ] { export *[ram]:2 address; }				#s Direct Addressing (dst) FE00h-FEFFh
 A_fmt: address		is op0_1 & (byte8 & byte16) [ address = (byte8 | byte16<<8 | op0_1<<16) | (inst_start & 0x20000); ] { tmp:3 = address; export tmp; } #A
 m_fmt: address		is short0 [ address = short0 & 0x1fff; ] { tmp:2 = address; export tmp; }		#m
-B_fmt: bits5_3		is bits5_3 { tmp:1 = bits5_3; export tmp; }		 								#B
+B_fmt: bits13_3		is bits13_3 { tmp:1 = bits13_3; export tmp; }		 								#B
 
 R_fmt: address		is sign4=0 & offL & offH [ address = ((inst_next + ((offH<<8) | offL))            & 0x1FFFF) | (inst_start & 0x20000); ] { tmp:3 = address; export tmp; }	# positive offset
 R_fmt: address		is sign4=1 & offL & offH [ address = ((inst_next + ((offH<<8) | offL | 0xFFF800)) & 0x1FFFF) | (inst_start & 0x20000); ] { tmp:3 = address; export tmp; }	# negative offset
 
 at_fmt: [Rn1] 		is bit0=0 & bit7=0 & Rn1 { export *[ram]:2 Rn1; }								#_@ Indirect Register Indirect Addressing ([Rn])
 at_fmt: [Rn1",C]"	is bit0=1 & bit7=0 & Rn1 { tmp:2 = Rn1 + sext(C); export *[ram]:2 tmp; }		#_@ Indirect Register + C Register Indirect Addressing ([Rn, C])
-at_fmt: [+off1_6s] 	is bit7=1 & bit6=0 & off1_6s { tmp:2 = R0 + off1_6s; export *[ram]:2 tmp; }		#_@ Indirect Register (R0) + Offset Value Indirect Addressing ([off])
-at_fmt: [-off1_6s]  	is bit7=1 & bit6=1 & off1_6s { tmp:2 = R0 + off1_6s; export *[ram]:2 tmp; }	#_@ Indirect Register (R0) + negative Offset Value Indirect Addressing ([off])
+at_fmt: [+off0_7s] 	is bit7=1 & bit6=0 & off0_7s { tmp:2 = R0 + off0_7s; export *[ram]:2 tmp; }		#_@ Indirect Register (R0) + Offset Value Indirect Addressing ([off])
+at_fmt: [-off0_7s]	is bit7=1 & bit6=1 & off0_7s { tmp:2 = R0 + off0_7s; export *[ram]:2 tmp; }		#_@ Indirect Register (R0) + negative Offset Value Indirect Addressing ([off])
 
 ias01M: "#"byte0	is mode=1 ; byte0 { export byte0; } 											#_i 
 ias01M: at_fmt		is mode=2 ; at_fmt { export at_fmt; }											#_@ 
@@ -204,25 +203,25 @@ macro additionAregWithCarry(op) {
 
 :bn s0,mode,r_fmt			is ((op3_5=5 | op3_5=7) & mode) ... & s0 ; r_fmt { }
 
-:bnm m_fmt,B_fmt,r_fmt		is op0_8=0xc7 ; m_fmt ; B_fmt ; r_fmt { }
+:bnm m_fmt,B_fmt,r_fmt		is op0_8=0xc7 ; m_fmt & B_fmt ; r_fmt { }
 
 :bp s0,mode,r_fmt			is ((op3_5=1 | op3_5=3) & mode) ... & s0 ; r_fmt { }
 
-:bpc m_fmt,B_fmt,r_fmt		is op0_8=0xa7 ; m_fmt ; B_fmt ; r_fmt { }
+:bpc m_fmt,B_fmt,r_fmt		is op0_8=0xa7 ; m_fmt & B_fmt ; r_fmt { }
 
-:bpm m_fmt,B_fmt,r_fmt		is op0_8=0xe7 ; m_fmt ; B_fmt ; r_fmt { }
+:bpm m_fmt,B_fmt,r_fmt		is op0_8=0xe7 ; m_fmt & B_fmt ; r_fmt { }
 
 :clr1 s0,mode				is ((op3_5=0x19 | op3_5=0x1b) & mode) ... & s0 { }
 
-:clr1m m_fmt,B_fmt			is op0_8=0xd7 ; m_fmt ; B_fmt { }
+:clr1m m_fmt,B_fmt			is op0_8=0xd7 ; m_fmt & B_fmt { }
 
 :not1 s0,mode				is ((op3_5=0x15 | op3_5=0x17) & mode) ... & s0 { }
 
-:not1m m_fmt,B_fmt			is op0_8=0xb7 ; m_fmt ; B_fmt { }
+:not1m m_fmt,B_fmt			is op0_8=0xb7 ; m_fmt & B_fmt { }
 
 :set1 s0,mode				is ((op3_5=0x1d | op3_5=0x1f) & mode) ... & s0 { }
 
-:set1m m_fmt,B_fmt			is op0_8=0xf7 ; m_fmt ; B_fmt { }
+:set1m m_fmt,B_fmt			is op0_8=0xf7 ; m_fmt & B_fmt { }
 
 
 ########### 8/16-BIT TRANSFER INSTRUCTIONS
